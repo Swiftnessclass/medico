@@ -10,3 +10,5 @@ twilio==9.5.1
  scikit-learn
   opencv-python==4.11.0.86 
   opencv-python-headless==4.11.0.86
+  wkhtmltopdf==0.12.6#desktop
+  pdfkit==1.0.0

@@ -1,11 +1,19 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from streamlit_extras.let_it_rain import rain
+import time  # Import the time module for adding delay
 
-import Blogs, Home, Alternatives, DiagnoseDisease, MedicineInformation, NearbyPharmacies, Ambulance
+# Set page config FIRST — before any Streamlit UI components
+st.set_page_config(
+    page_title="Medicano",
+    page_icon="💊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Import your internal modules
+import Blogs, Home, Alternatives, DiagnoseDisease, MedicineInformation, NearbyPharmacies, Ambulance, About_Contact
 from PillRemainder import app as PillReminderApp
-
- # Importing PCOS app
 from auth import register_user, login_user
 
 # ---------------- Session Setup ----------------
@@ -13,6 +21,10 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "username" not in st.session_state:
     st.session_state.username = ""
+if "popup_shown" not in st.session_state:
+    st.session_state.popup_shown = False
+if "popup_message" not in st.session_state:
+    st.session_state.popup_message = ""
 
 # ---------------- Header ----------------
 st.markdown("<h1 style='text-align: center;'>💊 Welcome to <span style='color:#4a4aff;'>Medicano</span></h1>", unsafe_allow_html=True)
@@ -56,21 +68,67 @@ if not st.session_state.logged_in:
                 else:
                     success, msg = register_user(new_username, new_email, new_password)
                     if success:
-                        st.success("✅ " + msg + " You can now log in.")
+                        st.session_state.popup_message = "✅ Registration successful!"
+                        st.session_state.popup_shown = True
+                        st.session_state.username = new_username  # Set the username for the session
                     else:
                         st.error("❌ " + msg)
 
+# ---------------- Show Registration Success Pop-up ----------------
+if st.session_state.popup_shown:
+    # Display the pop-up
+    st.markdown(f"""
+        <style>
+            .popup {{
+                background-color: #4CAF50; /* Correct background color */
+                color: white;
+                border-radius: 10px;
+                padding: 20px;
+                font-size: 16px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                position: fixed;
+                top: 40%;
+                left: 50%;
+                transform: translate(-50%, -40%);
+                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            }}
+            .popup button {{
+                background-color: #fff;
+                color: #4CAF50;
+                border: none;
+                padding: 10px 20px;
+                margin-top: 10px;
+                cursor: pointer;
+                font-size: 14px;
+                border-radius: 5px;
+            }}
+            .popup button:hover {{
+                background-color: #e0e0e0;
+            }}
+        </style>
+        <div class="popup">
+            <h3>{st.session_state.popup_message}</h3>
+            <p>Please click below to log in.</p>
+            <button onclick="window.location.href='?popup_shown=False';">Login Now</button>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Wait for 2-3 seconds before hiding the pop-up and proceeding
+    time.sleep(3)  # Add a delay of 3 seconds
+    st.session_state.popup_shown = False  # Hide the pop-up after the delay
+    st.experimental_rerun()  # Trigger a rerun to show the login page
+
 # ---------------- Load App if Logged In ----------------
 if st.session_state.logged_in:
+
     class MultiApp:
         def __init__(self):
             self.apps = []
 
         def add_apps(self, title, function):
-            self.apps.append({
-                "title": title,
-                "function": function
-            })
+            self.apps.append({"title": title, "function": function})
 
         def run(self):
             titles = [app['title'] for app in self.apps]
@@ -93,8 +151,10 @@ if st.session_state.logged_in:
                     styles={
                         "container": {"padding": "5!important", "background-color": 'white'},
                         "icon": {"color": "black", "font-size": "23px"},
-                        "nav-link": {"color": "black", "font-size": "20px", "text-align": "left", "margin": "0px",
-                                     "--hover-color": "#000066"},
+                        "nav-link": {
+                            "color": "black", "font-size": "20px", "text-align": "left", "margin": "0px",
+                            "--hover-color": "#000066"
+                        },
                         "nav-link-selected": {"background-color": "white"}
                     }
                 )
@@ -112,7 +172,8 @@ if st.session_state.logged_in:
     Medical.add_apps("Nearby Pharmacies", lambda: NearbyPharmacies.Pharmacies().app())
     Medical.add_apps("Blogs", lambda: Blogs.Blogs().app())
     Medical.add_apps("Emergency Ambulance", lambda: Ambulance.AmbulanceFinder().app())
-    Medical.add_apps("Pill Reminder", PillReminderApp)
+    Medical.add_apps("Pill Reminder", PillReminderApp)  # No .app() needed here
+    Medical.add_apps("About&Contact", lambda: About_Contact.app())  # Make sure About_Contact has app()
 
     # Run Selected App
-    Medical.run()
+    Medical.run()  
