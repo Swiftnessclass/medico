@@ -153,7 +153,7 @@ if st.session_state.logged_in:
                         "icon": {"color": "black", "font-size": "23px"},
                         "nav-link": {
                             "color": "black", "font-size": "20px", "text-align": "left", "margin": "0px",
-                            "--hover-color": "#000066"
+                            
                         },
                         "nav-link-selected": {"background-color": "white"}
                     }
