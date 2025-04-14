@@ -1,23 +1,24 @@
 import joblib
-import os
 import numpy as np
+import os
 
-# Get the directory of the current script
-model_dir = os.path.dirname(__file__)
+# Load model and scaler (ensure paths are correct)
+model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'pcos_model', 'pcos_model.pkl'))
+scaler_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'pcos_model', 'scaler.pkl'))
 
-# Construct the full path to the model and scaler files
-model_path = os.path.join(model_dir, '../pcos_model/pcos_model.pkl')
-scaler_path = os.path.join(model_dir, '../pcos_model/scaler.pkl')
-
-# Load the trained model and scaler
 model = joblib.load(model_path)
 scaler = joblib.load(scaler_path)
 
-def predict_pcos(features):
-    # Scale the features using the pre-trained scaler
+model = joblib.load(model_path)
+scaler = joblib.load(scaler_path)
+
+def predict_pcos(features: np.ndarray) -> int:
+    """
+    Predict whether the patient has PCOS based on input features.
+    Input: features - a NumPy array of shape (1, 3)
+    Output: prediction - 0 or 1
+    """
+    # Scale features
     scaled_features = scaler.transform(features)
-    
-    # Make the prediction using the pre-trained model
     prediction = model.predict(scaled_features)
-    
-    return prediction[0]  # Return the prediction (1 or 0)
+    return int(prediction[0])

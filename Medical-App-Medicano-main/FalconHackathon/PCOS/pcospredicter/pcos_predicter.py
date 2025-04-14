@@ -2,9 +2,30 @@ import sys
 import os
 import numpy as np
 import streamlit as st
+import joblib
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils.predict import predict_pcos
+
+# Load the trained model and scaler
+model_path = os.path.join(os.path.dirname(__file__), '..', 'pcos_model', 'pcos_model.pkl')
+scaler_path = os.path.join(os.path.dirname(__file__), '..', 'pcos_model', 'scaler.pkl')
+
+model = joblib.load(os.path.abspath(model_path))
+scaler = joblib.load(os.path.abspath(scaler_path))
+
+def predict_pcos(features):
+    """
+    Predict whether the patient has PCOS based on input features.
+    Scales the features and uses the trained model for prediction.
+    """
+    # Scale the features using the saved scaler
+    features_scaled = scaler.transform(features)
+    
+    # Predict using the model
+    prediction = model.predict(features_scaled)
+    
+    # Return prediction result: 1 if positive for PCOS, 0 otherwise
+    return prediction[0]
 
 def app():
     # Set a title for the app
@@ -22,9 +43,11 @@ def app():
         This tool helps predict whether you might have Polycystic Ovary Syndrome (PCOS) based on certain health markers. 
         Enter the following values:
 
-        - **I β-HCG (mIU/mL)**: A hormone produced during pregnancy or conditions related to PCOS.
-        - **II β-HCG (mIU/mL)**: Another form of the HCG hormone, typically elevated in PCOS.
-        - **AMH (ng/mL)**: Anti-Müllerian Hormone, which can be indicative of ovarian reserve.
+        - Age: Age of the person.
+        - BMI: Body Mass Index.
+        - Menstrual Irregularity: Whether there is any menstrual irregularity (1 = Yes, 0 = No).
+        - **Testosterone Level**: The level of testosterone in ng/dL.
+        - **Antral Follicle Count**: The number of antral follicles in the ovaries.
 
         After entering the values, click **Start Prediction** to receive your result.
         """)
@@ -39,17 +62,20 @@ def app():
         st.subheader("Enter the following health details:")
 
         # Input fields for health details
-        hcg_i = st.number_input("I β-HCG (mIU/mL)", min_value=0.0, format="%.2f", help="Enter the I β-HCG value")
-        hcg_ii = st.number_input("II β-HCG (mIU/mL)", min_value=0.0, format="%.2f", help="Enter the II β-HCG value")
-        amh = st.number_input("AMH (ng/mL)", min_value=0.0, format="%.2f", help="Enter the AMH value")
+        age = st.number_input("Age", min_value=0, max_value=100, help="Enter your age")
+        bmi = st.number_input("BMI", min_value=10.0, max_value=50.0, help="Enter your BMI")
+        menstrual_irregularity = st.selectbox("Menstrual Irregularity", [0, 1], help="1 = Yes, 0 = No")
+        testosterone_level = st.number_input("Testosterone Level (ng/dL)", min_value=0.0, max_value=200.0, help="Enter testosterone level")
+        antral_follicle_count = st.number_input("Antral Follicle Count", min_value=0, max_value=50, help="Enter the number of antral follicles")
 
         # Prediction button
         if st.button("🔍 Predict"):
-            if hcg_i == 0 or hcg_ii == 0 or amh == 0:
-                st.warning("Please enter all values to proceed with the prediction.")
+            # Check if any value is invalid (less than or equal to 0)
+            if age <= 0 or bmi <= 0 or testosterone_level <= 0 or antral_follicle_count <= 0:
+                st.warning("Please enter valid values for all fields to proceed with the prediction.")
             else:
                 # Prepare features for prediction
-                features = np.array([[hcg_i, hcg_ii, amh]])
+                features = np.array([[age, bmi, menstrual_irregularity, testosterone_level, antral_follicle_count]])
                 result = predict_pcos(features)
 
                 # Show results based on the prediction
@@ -61,19 +87,31 @@ def app():
     # Styling for the app (optional)
     st.markdown("""
     <style>
-    .css-1v0mbdj { 
-        background-color: #F3F4F6; 
-        padding: 20px; 
+    .custom-container {
+        background-color: #F3F4F6;
+        padding: 20px;
         border-radius: 8px;
+        box-shadow: none; /* Remove any visual "depth" */
     }
-    .css-1v0mbdj h1 { 
+
+    h1 {
         font-size: 32px;
         font-weight: bold;
         color: #2C3E50;
     }
-    .css-1v0mbdj p { 
-        font-size: 16px;
-        color: #34495E;
+
+    p, label, .stMarkdown, .stNumberInput, .stSelectbox {
+        font-size: 16px !important;
+        color: #34495E !important;
+   
+        filter: none !important;
+    }
+
+    /* Removes any blur from focused input fields */
+    input:focus, select:focus, textarea:focus {
+        backdrop-filter: none !important;
+        filter: none !important;
+        outline: 2px solid #2980B9;
     }
     </style>
     """, unsafe_allow_html=True)
